@@ -1,0 +1,75 @@
+#!/bin/bash
+set -e
+
+SOURCE="$0"
+while [ -L "$SOURCE" ]; do
+    SOURCE="$(readlink $SOURCE)"
+done
+SCRIPT_DIR="$(dirname $SOURCE)"
+LICENSE_DIR="${LICENSE_DIR:-$($SCRIPT_DIR)/licenses}"
+
+licenses() {
+    echo $(ls $LICENSE_DIR)
+}
+
+show_usage() {
+    echo "Usage: $0 <license>"
+    echo "Available licenses: $(licenses)"
+}
+
+lowercase() {
+    tr '[A-Z]' '[a-z]'
+}
+
+license_filename() {
+    input=$1
+    for license in $(licenses); do
+        lowered=$(echo $license | lowercase)
+        if [ "$lowered" == "$input" ]; then
+            echo $license
+            return
+        fi
+    done
+}
+
+confirm_overwrite() {
+    name=$1
+    read -p "\"$name\" file already exists. Overwrite? [N/y] " -n 1 reply
+    echo
+    reply=$(echo $reply | lowercase)
+    if [ "$reply" != "y" ]; then
+        echo "Aborted."
+        exit 1
+    fi
+}
+
+add_license() {
+    file=$1
+    year=$(date +"%Y")
+    author=$(git config user.name)
+    if [ -f LICENSE ]; then
+        confirm_overwrite LICENSE
+    fi
+    cat $file | sed "s/{{year}}/$year/" | sed "s/{{author}}/$author/" > LICENSE
+}
+
+main() {
+    input=$1
+    if [ -n "$input" ]; then
+        filename="$(license_filename $input)"
+        file="$LICENSE_DIR/$filename"
+        if [ -f "$file" ]; then
+            add_license $file
+            echo "Wrote $filename license to LICENSE."
+        else
+            echo "\"$input\" is not an available license."
+            echo "Available licenses are: $(licenses)"
+            exit 1
+        fi
+    else
+        show_usage
+        exit 1
+    fi
+}
+
+main $1
