@@ -5,15 +5,32 @@ SOURCE="$0"
 while [ -L "$SOURCE" ]; do
     SOURCE="$(readlink $SOURCE)"
 done
-LICENSE_DIR="${LICENSE_DIR:-$(dirname $SOURCE)/licenses/}"
+LICENSE_DIR="${LICENSE_DIR:-$(dirname $SOURCE)/licenses}"
+
+AUTHOR=$(git config user.name) 2> /dev/null
+YEAR=$(date +"%Y")
+OUTPUT="LICENSE"
+OPTIND=1
 
 list_licenses() {
-    echo $(ls $LICENSE_DIR)
+    echo $(ls -m $LICENSE_DIR)
 }
 
 show_usage() {
-    echo "Usage: $0 <license>"
-    echo "Available licenses: $(list_licenses)"
+    author=$(git config user.name) 2> /dev/null
+    year=$(date +"%Y")
+    cat <<EOF
+Usage: $0 [-y <year>] [-a <author>] [-l <file>] [-g] [-h] <license>
+
+Options:
+  -a <author>  specify author for copyright [defaults to $author]
+  -g           commit license to git repository
+  -h           show this message
+  -l <file>    specify output filename [defaults to LICENSE]
+  -y <year>    specify year for copyright [defaults to $year]
+
+Available licenses: $(list_licenses)
+EOF
 }
 
 lowercase() {
@@ -21,8 +38,8 @@ lowercase() {
 }
 
 find_license() {
-    input=$1
-    for license in $(list_licenses); do
+    input=$(lowercase $1)
+    for license in $(ls $LICENSE_DIR); do
         if [ "$(lowercase $license)" = "$input" ]; then
             echo $license
             return
@@ -31,7 +48,7 @@ find_license() {
 }
 
 confirm_overwrite() {
-    name=$1
+    name="$1"
     read -p "\"$name\" file already exists. Overwrite? [N/y] " -n 1 reply
     echo
     if [ "$(lowercase $reply)" != "y" ]; then
@@ -41,23 +58,67 @@ confirm_overwrite() {
 }
 
 add_license() {
-    file=$1
-    year=$(date +"%Y")
-    author=$(git config user.name)
-    if [ -f LICENSE ]; then
-        confirm_overwrite LICENSE
+    license="$1"
+    [ -f "$OUTPUT" ] && confirm_overwrite "$OUTPUT"
+    cat $license |
+        sed "s/{{year}}/$YEAR/" |
+        sed "s/{{author}}/$AUTHOR/" > "$OUTPUT"
+}
+
+git_commit() {
+    license="$1"
+    if [ -z "`git status 2> /dev/null`" ]; then
+        echo "Cannot commit - not a git repository."
+        exit 1
     fi
-    cat $file | sed "s/{{year}}/$year/" | sed "s/{{author}}/$author/" > LICENSE
+    if [ -n "`git status --porcelain -uno`" ]; then
+        echo "Will not commit - there are staged files present."
+        exit 1
+    fi
+    git add $OUTPUT
+    git commit -m "Add $license license."
 }
 
 main() {
-    input=$1
+    while getopts "h?y:a:l:g" opt; do
+        case "$opt" in
+            h|\?)
+                show_usage
+                exit 0
+                ;;
+            y)
+                YEAR="$OPTARG"
+                ;;
+            g)
+                gitcommit="true"
+                ;;
+            a)
+                AUTHOR="$OPTARG"
+                ;;
+            l)
+                OUTPUT="$OPTARG"
+                ;;
+        esac
+    done
+
+    shift $((OPTIND-1))
+    [ "$1" = "--" ] && shift
+    input="$1"
+
+    if [ -z "$AUTHOR" ]; then
+        echo 'Was not able to determine author from `git config user.name`,'
+        echo "and none was supplied. Use \`$SOURCE -a \"Author Name\" <license>\`."
+        exit 1
+    fi
+
     if [ -n "$input" ]; then
-        filename="$(find_license $input)"
-        file="$LICENSE_DIR/$filename"
+        template="$(find_license $input)"
+        file="$LICENSE_DIR/$template"
         if [ -f "$file" ]; then
             add_license $file
-            echo "Wrote $filename license to LICENSE."
+            echo "Wrote $template license to LICENSE."
+            [ -n "$gitcommit" ] && git_commit "$template"
+            exit 0
         else
             echo "\"$input\" is not an available license."
             echo "Available licenses are: $(list_licenses)"
@@ -69,6 +130,4 @@ main() {
     fi
 }
 
-if [ "${BASH_SOURCE[0]}" = "$0" ]; then
-    main "$@"
-fi
+main "$@"
