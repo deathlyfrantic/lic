@@ -1,0 +1,15 @@
+#compdef lic
+
+_arguments -C -s \
+    '-a[specify author name - defaults to `git config user.name`]' \
+    '-g[commit license to git repository once written]' \
+    '-h[show help]' \
+    '-l[specify output filename - defaults to LICENSE]' \
+    '-y[specify year - defaults to current year]' \
+    '*:files:->file'
+
+case $state in
+    file)
+        _files -W $(lic __GET_TEMPLATE_DIR__)
+        ;;
+esac

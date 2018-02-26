@@ -7,6 +7,10 @@ while [ -L "$SOURCE" ]; do
 done
 
 LICENSE_DIR="${LICENSE_DIR:-$(dirname $SOURCE)/templates}"
+# "hidden" option to echo the default license dir
+# for use in completion functions
+[ "$1" = "__GET_TEMPLATE_DIR__" ] && echo $LICENSE_DIR && exit 0
+
 AUTHOR=$(git config user.name) 2> /dev/null
 YEAR=$(date +"%Y")
 OUTPUT="LICENSE"
