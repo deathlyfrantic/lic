@@ -40,6 +40,16 @@ test_show_usage_when_no_arguments() {
     assertTrue "Does not show usage." "[ -n \"`$LIC | grep Usage`\" ]"
 }
 
+test_specifying_license_dir() {
+    mkdir foo
+    touch foo/{a,b,c}
+    output="`LICENSE_DIR=foo $LIC -h`"
+    assertTrue \
+        "Does not show 'a, b, c' as available licenses." \
+        "[ -n \"`LICENSE_DIR=foo $LIC | grep 'Available licenses: a, b, c'`\" ]"
+    rm -rf foo
+}
+
 test_add_license_when_none_exists() {
     lic test_license
     assertTrue "LICENSE does not exist." "[ -f LICENSE ]"
