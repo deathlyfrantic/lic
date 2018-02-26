@@ -5,8 +5,8 @@ SOURCE="$0"
 while [ -L "$SOURCE" ]; do
     SOURCE="$(readlink $SOURCE)"
 done
-LICENSE_DIR="${LICENSE_DIR:-$(dirname $SOURCE)/templates}"
 
+LICENSE_DIR="${LICENSE_DIR:-$(dirname $SOURCE)/templates}"
 AUTHOR=$(git config user.name) 2> /dev/null
 YEAR=$(date +"%Y")
 OUTPUT="LICENSE"
