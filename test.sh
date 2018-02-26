@@ -6,14 +6,14 @@ oneTimeSetUp() {
     git init -q
     git config user.name "Foobar McGee"
     cd "$CURRENT_DIR"
-    echo "TEST {{author}} {{year}} END" > licenses/test_license
-    echo "TEST2 {{author}} {{year}} END" > licenses/test_license2
+    echo "TEST {{author}} {{year}} END" > templates/test_license
+    echo "TEST2 {{author}} {{year}} END" > templates/test_license2
 }
 
 oneTimeTearDown() {
     cd "$CURRENT_DIR"
-    rm licenses/test_license
-    rm licenses/test_license2
+    rm templates/test_license
+    rm templates/test_license2
 }
 
 setUp() {
