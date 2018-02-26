@@ -105,13 +105,14 @@ main() {
     [ "$1" = "--" ] && shift
     input="$1"
 
-    if [ -z "$AUTHOR" ]; then
-        echo 'Was not able to determine author from `git config user.name`,'
-        echo "and none was supplied. Use \`$SOURCE -a \"Author Name\" <license>\`."
-        exit 1
-    fi
-
     if [ -n "$input" ]; then
+        if [ -z "$AUTHOR" ]; then
+            echo -n "Was not able to determine author from "
+            echo '`git config user.name`, and none was supplied. '
+            echo "Use \`$0 -a \"Author Name\" <license>\`."
+            exit 1
+        fi
+
         template="$(find_license $input)"
         file="$LICENSE_DIR/$template"
         if [ -f "$file" ]; then
